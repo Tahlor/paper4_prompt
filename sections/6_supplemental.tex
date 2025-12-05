@@ -1,0 +1,25 @@
+\section{Supplemental Material}
+\label{sec:supplemental}
+
+\subsection{Additional Confidence Histograms}
+We provide extended histograms for all evaluated models, comparing the [0-1] and [1-10] prompting scales.
+
+\begin{figure*}[h]
+    \centering
+    \includegraphics[width=0.32\textwidth]{figures/self_confidence_score_scale/o1_histogram_uncalibrated_Gemini 2.5 Flash.png}
+    \includegraphics[width=0.32\textwidth]{figures/self_confidence_score_scale/o1_histogram_uncalibrated_Gemini 2.0 Flash.png}
+    \includegraphics[width=0.32\textwidth]{figures/self_confidence_score_scale/o1_histogram_uncalibrated_GPT-5 Mini Low.png}
+    \caption{Confidence score distributions for Gemini 2.5 Flash, Gemini 2.0 Flash, and GPT-5 Mini Low. The [0-1] scale (blue) consistently skews higher than the [1-10] scale (red).}
+    \label{fig:supp_histograms}
+\end{figure*}
+
+\subsection{Oracle Analysis Heatmaps}
+To understand the theoretical upper bound of performance, we analyze the "Oracle" performance—assuming we could perfectly select the best prediction from our ensemble of prompts and degradations.
+
+\begin{figure}[h]
+    \centering
+    % Placeholder for Oracle Heatmap
+    \includegraphics[width=0.8\linewidth]{example-image-c}
+    \caption{Heatmap showing the frequency with which each prompt/degradation pair provides the best result in the Oracle ensemble. (Placeholder).}
+    \label{fig:supp_oracle}
+\end{figure}

@@ -1,0 +1,108 @@
+\section{Methodology}
+\label{sec:method}
+
+We introduce a review-budget framework for evaluating confidence signals in document transcription, define the families of confidence proxies we evaluate, and describe our experimental setup involving diverse prompts and visual degradations.
+
+\subsection{Review-Budget Evaluation Framework}
+\label{subsec:review_budget}
+
+Traditional evaluation metrics for transcription, such as Character Error Rate (CER), report a single scalar value representing the average performance of a system. However, in real-world deployments, practitioners often have a budget for human review (Human-in-the-Loop, or HITL). The operational goal is to maximize the final accuracy of the system given this fixed budget.
+
+We formalize this using a \textbf{Review-Budget Framework}. Let $D = \{(x_i, y_i)\}_{i=1}^N$ be a dataset of document images $x_i$ and ground truth transcripts $y_i$. A model $M$ produces a predicted transcript $\hat{y}_i$ and a confidence score $c_i \in \mathbb{R}$.
+
+We define the \textbf{Review Rate} $r \in [0, 1]$ as the proportion of samples sent for human review. We assume a strategy that prioritizes reviewing samples with the lowest confidence scores $c_i$. If a sample is reviewed, we assume the human corrector provides the perfect ground truth $y_i$ (or corrects $\hat{y}_i$ to $y_i$).
+
+The \textbf{Accuracy at Review Rate $r$}, denoted as $\text{ACC}(r)$, is defined as:
+
+\begin{equation}
+    \text{ACC}(r) = \frac{1}{N} \left( \sum_{i \in \mathcal{U}_r} \mathbb{I}(\hat{y}_i = y_i) + \sum_{i \in \mathcal{R}_r} 1 \right)
+\end{equation}
+
+where $\mathcal{R}_r$ is the set of $r \cdot N$ samples with the lowest confidence scores (sent to review), and $\mathcal{U}_r$ is the set of remaining unreviewed samples. The term $\sum_{i \in \mathcal{R}_r} 1$ reflects the assumption that reviewed samples are perfectly corrected.
+
+We visualize this relationship using a \textbf{Risk-Coverage Curve} (or Accuracy-Review Curve), plotting $\text{ACC}(r)$ against $r$. A perfect confidence signal would allow the system to correct all errors with the minimum necessary review rate.
+
+\paragraph{Metrics} We evaluate confidence signals using:
+\begin{itemize}
+    \item \textbf{AUROC (Area Under the Receiver Operating Characteristic Curve)}: Measures the ability of the confidence score to rank correct predictions higher than incorrect ones.
+    \item \textbf{AUC-RC (Area Under the Risk-Coverage Curve)}: Quantifies the overall efficiency of the confidence signal in the review-budget framework.
+    \item \textbf{ECE (Expected Calibration Error)}: Measures the absolute difference between predicted confidence and empirical accuracy.
+    \item \textbf{Brier Score}: A proper scoring rule measuring the mean squared difference between predicted probability and actual outcome.
+\end{itemize}
+
+\subsection{Confidence Signal Families}
+\label{subsec:confidence_families}
+
+We systematically evaluate three families of confidence proxies available from modern MLLMs.
+
+\subsubsection{Logprob-Based Confidence}
+For models that expose token-level log-probabilities, we derive confidence from the sequence log-probabilities. Let $\log P(t_j | x, t_{<j})$ be the log-probability of the $j$-th token in the predicted sequence $\hat{y}$. We compute the sequence confidence $C_{logprob}$ as the length-normalized sum of log-probabilities:
+
+\begin{equation}
+    C_{logprob}(\hat{y}) = \frac{1}{L} \sum_{j=1}^L \log P(t_j | x, t_{<j})
+\end{equation}
+
+where $L$ is the sequence length. We also explore using the minimum token log-probability as an alternative metric.
+
+\subsubsection{Verbalized (Self-Reported) Confidence}
+For black-box models without logprob access, we prompt the model to explicitly estimate its own uncertainty. We investigate two scaling strategies:
+\begin{itemize}
+    \item \textbf{Float Scale [0, 1]}: Prompting the model to provide a score between 0.0 and 1.0.
+    \item \textbf{Integer Scale [1, 10]}: Prompting for an integer score between 1 and 10, which is then normalized to $[0, 1]$.
+\end{itemize}
+We also evaluate \textbf{Justification-Based Confidence}, where the model is asked to explain its reasoning before assigning a score, hypothesizing that the reasoning process (Chain-of-Thought) may improve calibration.
+
+\subsubsection{Ensemble-Based Confidence}
+We utilize ensemble variance as a proxy for uncertainty. Given a set of $K$ predictions $\{\hat{y}^{(k)}\}_{k=1}^K$ generated from different prompts or model variants for the same input $x$, we measure the \textbf{Pairwise Agreement}. For a pair of predictions $(\hat{y}^{(1)}, \hat{y}^{(2)})$, we define confidence based on their normalized edit distance (Levenshtein distance):
+
+\begin{equation}
+    C_{ensemble} = 1 - \frac{\text{dist}(\hat{y}^{(1)}, \hat{y}^{(2)})}{\max(\text{len}(\hat{y}^{(1)}), \text{len}(\hat{y}^{(2)}))}
+\end{equation}
+
+High agreement implies high confidence.
+
+\subsection{Learned Confidence Combination (GBT)}
+\label{subsec:gbt}
+
+To determine if we can outperform individual signals, we train a Gradient Boosted Tree (GBT) classifier to predict the correctness of a transcription. The GBT is trained on a feature vector $\mathbf{f}$ derived from two "cheap" model runs (e.g., GPT-5 Mini Low and Gemini 2.0 Flash).
+
+The features $\mathbf{f}$ include:
+\begin{itemize}
+    \item \textbf{Self-Reported Confidence ($s_{conf}$)}: The verbalized scores from each model.
+    \item \textbf{Legibility Score ($s_{legibility}$)}: A model-predicted score of document legibility.
+    \item \textbf{Edit Distance ($d_{edit}$)}: The normalized edit distance between the two model predictions.
+    \item \textbf{Ground Truth Length ($l_{GT}$)}: A proxy for transcription difficulty.
+\end{itemize}
+
+The GBT outputs a probability of correctness $P(y=1 | \mathbf{f})$. We use this probability as the final confidence score for selective routing, choosing the prediction from the model with the higher predicted probability of correctness.
+
+\subsection{Experimental Setup}
+\label{subsec:setup}
+
+\paragraph{Models} We evaluate the following models, representing a range of reasoning capabilities and costs:
+\begin{itemize}
+    \item \textbf{Gemini 2.0 Flash}: A fast, cost-effective multimodal model.
+    \item \textbf{Gemini 2.5 Flash}: A more capable reasoning model.
+    \item \textbf{GPT-5 Mini Low}: A smaller reasoning model (low reasoning effort).
+\end{itemize}
+
+\paragraph{Prompt Variants} We employ a taxonomy of prompts to test the impact of instruction granularity and semantic freedom on confidence calibration (Table \ref{tab:prompt_taxonomy}).
+
+\begin{table}[h]
+    \centering
+    \begin{tabular}{l|l}
+        \textbf{Category} & \textbf{Description} \\
+        \hline
+        BASELINE & Neutral instruction ("Transcribe this document") \\
+        GRANULARITY\_CHAR & Character-level output ("Output like: M,a,r,y") \\
+        GRANULARITY\_WORD & Word-level output ("Output word by word") \\
+        SEMANTIC\_LITERAL & Exact reproduction ("Transcribe exactly as written") \\
+        SEMANTIC\_CONTEXT & Allow modernization ("Transcribe, modernizing spelling") \\
+        CONFIDENCE\_VERBAL & Request self-assessment ("Rate confidence 1-10") \\
+        REASONING & Chain-of-thought ("Explain your reasoning") \\
+    \end{tabular}
+    \caption{Taxonomy of prompt variants used to generate diverse predictions and confidence signals.}
+    \label{tab:prompt_taxonomy}
+\end{table}
+
+\paragraph{Visual Degradations} To test robustness, we apply synthetic degradations to the document images: Gridwarp (geometric distortion), Gaussian Noise, and Gaussian Blur, with varying intensity levels $\sigma$.

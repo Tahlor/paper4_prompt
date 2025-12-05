@@ -1,0 +1,23 @@
+\section{Discussion}
+\label{sec:discussion}
+
+\subsection{Practical Guidelines for Practitioners}
+Based on our findings, we offer the following recommendations for deploying MLLMs in document transcription workflows:
+
+\begin{enumerate}
+    \item \textbf{Prioritize Logprobs if Available}: If the API exposes log-probabilities, they remain the most robust single signal for ranking predictions.
+    \item \textbf{Use [1-10] Scale for Self-Reporting}: If restricted to black-box APIs, prompt for confidence on an integer scale of 1-10 rather than 0-1. This yields a more discriminative signal.
+    \item \textbf{Leverage Prompt Diversity}: Do not rely on a single prompt. Ensembling predictions from "Literal" and "Contextual" prompts provides a cheap way to detect uncertainty via disagreement.
+    \item \textbf{Consider Learned Routing}: For high-volume pipelines, training a lightweight GBT on confidence signals from cheaper models can outperform a single expensive model, optimizing the accuracy-cost tradeoff.
+\end{enumerate}
+
+\subsection{Limitations}
+Our study is limited to a specific domain of historical document transcription. While we believe the findings on confidence calibration generalize to other transcription tasks, the specific error modalities may differ for born-digital documents or scene text. Additionally, we focused on a specific set of models (Gemini, GPT); as model architectures evolve, the relative performance of "reasoning" vs. "non-reasoning" models may shift.
+
+\subsection{Future Work}
+Future research should explore:
+\begin{itemize}
+    \item \textbf{Performance-per-FLOP}: A rigorous economic analysis of the tradeoff between ensemble size and review reduction.
+    \item \textbf{Active Learning}: Using the identified confidence signals to select samples for few-shot prompting or fine-tuning.
+    \item \textbf{Cross-Domain Generalization}: Validating the review-budget framework on diverse tasks like medical record extraction or receipt processing.
+\end{itemize}

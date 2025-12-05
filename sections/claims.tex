@@ -1,0 +1,28 @@
+But here are the more specific claims I'm making in paper:
+
+* logprobs can be calibrated and are useful for determining confidence, better than self-reported log probs
+
+* AUROC is pretty good under mild degradation (CER gets worse, but log prob uncertainty holds up)
+
+* we are primarily interested in 1) how many items do we need humans to review and 2) what is the final accuracy after review
+
+* we will have claims about how to improve upon logprob (e..g, taking the token with the minimum log prob, or a regression where we look at the document quality or combine the self-confidence + logprob, this is TBD)
+
+* logprobs are not often available
+
+* we will have claims about frequency bias, that steering the model to prefer "context" over literal transcription can be helpful
+
+* we will investigate how prompting for justification impacts performance and confidence (log prob and self-reported confidence)
+
+* often logprobs are not available (APIs don't often support them)
+
+* what is the best you can do without log probs; we can prompt the agent to identify weaker spots, provide confidence scores, etc.
+
+* we can also compare different prompts; e.g. ask 2 models or use different prompts, see if they get the same result, if not, we flag as unconfident; this gives us a pareto distribution
+
+* e.g., if we ask for character-level token returns and combine this with contextual prompt, this is useful if we want to find more items to review to improve accuracy
+
+
+
+So all this stuff about paradigm shifting in our intro is a little out of place. Mostly, my view is that in the past, the goal was always to get SOTA on some dataset. And I just want a tiny bit to anticipate these claims; my args are like 1) model performance depends a lot on how much test-time compute / cost you're willing to use (e.g., Gemini 2.5 pro is much more expensive, but thinks harder and can get better results) and 2) all of these models should be assumed to be contaminated with our standard datasets, so that's why I'm not looking at some generic dataset that everyone compares on. I'm not really arguing for new paradigms necessarily, I just want to anticipate critiques like "why didn't you use this and 5 other datasets" and "why aren't you sota." The challenge is going to be framing this as a real contribution, because often it's like "hey I did this thing and it makes X 20% faster/more accurate" and I'm mostly just saying "hey I did 100 things and here's 20 interesting findings." I get the impression the latter is frowned upon, but in my view, it's really important for everyone to know. Plus not everything I did was super obvious.
+

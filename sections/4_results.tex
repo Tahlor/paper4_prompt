@@ -1,0 +1,99 @@
+\section{Results}
+\label{sec:results}
+
+We present our findings on the comparative effectiveness of confidence proxies, their robustness to degradation, and the potential of learned combinations.
+
+\subsection{Comparison of Confidence Proxy Families}
+\label{subsec:results_comparison}
+
+\textbf{Finding 1.1: Logprobs provide robust ranking but are not always best.}
+Our analysis shows that logprob-derived confidence generally achieves high AUROC scores, indicating a strong ability to rank correct predictions above incorrect ones. However, calibration (ECE) varies significantly, particularly for reasoning models where the "thought" tokens may not align perfectly with the visual evidence.
+
+\textbf{Finding 1.2: Self-reported confidence depends critically on scale.}
+We observe a distinct difference in the distribution of confidence scores depending on the prompting scale. As shown in Figure \ref{fig:confidence_scales}, prompting for a [0-1] float leads to highly skewed, overconfident distributions, whereas the [1-10] integer scale produces more conservative and discriminative distributions.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\linewidth]{figures/self_confidence_score_scale/o1_histogram_uncalibrated_Gemini 2.5 Flash.png}
+    \caption{Comparison of confidence score distributions for Gemini 2.5 Flash using [0-1] float scale vs. [1-10] integer scale. The [1-10] scale (red) elicits a broader, more conservative distribution compared to the [0-1] scale (blue).}
+    \label{fig:confidence_scales}
+\end{figure}
+
+\textbf{Finding 1.3: Logprobs outperform self-reported for correctness prediction.}
+Despite the utility of self-reported scores, logprobs consistently achieve higher AUROC across all tested models. This suggests that the model's internal uncertainty is a more reliable signal of correctness than its verbalized assessment.
+
+\begin{table}[h]
+    \centering
+    \begin{tabular}{l|c|c|c|c}
+        \textbf{Model} & \textbf{Prompt} & \textbf{Logprob AUROC} & \textbf{Self-Conf AUROC} & \textbf{Ensemble AUROC} \\
+        \hline
+        Gemini 2.0 Flash & Baseline & \textbf{0.85} & 0.78 & 0.82 \\
+        Gemini 2.5 Flash & Baseline & \textbf{0.88} & 0.81 & 0.84 \\
+        GPT-5 Mini Low & Baseline & N/A & 0.76 & 0.79 \\
+    \end{tabular}
+    \caption{Comparison of AUROC for different confidence signals. Logprobs consistently outperform self-reported confidence where available. (Placeholder values - to be updated with final data).}
+    \label{tab:confidence_comparison}
+\end{table}
+
+\subsection{Robustness Under Degradation}
+\label{subsec:results_robustness}
+
+\textbf{Finding 2.1: AUROC remains stable even as CER increases.}
+We subjected the models to increasing levels of Gridwarp, Noise, and Blur. As expected, the Character Error Rate (CER) increases monotonically with degradation intensity. However, remarkably, the AUROC for both logprobs and self-reported confidence remains relatively stable (Figure \ref{fig:monotonic_degradation}). This indicates that while the models make more errors on degraded images, they retain the ability to correctly identify *which* images they are likely to get wrong.
+
+\begin{figure*}[h]
+    \centering
+    \includegraphics[width=\textwidth]{figures/monotonic_degradation/combined_master_sample_database_calibrated_panel_cer_auroc.png}
+    \caption{Impact of monotonic degradation (Gridwarp, Noise, Blur) on CER and AUROC. While CER (red) rises sharply with degradation intensity, the AUROC for logprobs (blue solid) and self-confidence (blue dashed) remains stable, demonstrating robustness of the uncertainty signal.}
+    \label{fig:monotonic_degradation}
+\end{figure*}
+
+\subsection{Error Modalities and Prompting}
+\label{subsec:results_errors}
+
+\textbf{Finding 3.1: Prompt design influences error types.}
+Our analysis of error types reveals that "Literal" prompts tend to suffer from frequency bias, producing verbatim errors, while "Contextual" prompts reduce these but may introduce interpretation errors. Character-level prompts shift the error distribution entirely, often catching errors that word-level prompts miss.
+
+\begin{figure}[h]
+    \centering
+    % Placeholder for Radar Plot
+    \includegraphics[width=0.8\linewidth]{example-image-a} 
+    \caption{Radar plot showing the distribution of error types (Substitution, Insertion, Deletion, Fabrication) for different prompt categories. (Placeholder).}
+    \label{fig:error_radar}
+\end{figure}
+
+\subsection{Learned Combinations (GBT)}
+\label{subsec:results_gbt}
+
+\textbf{Finding 4.1: GBT on cheap signals outperforms raw logits.}
+We trained a GBT to predict correctness using features from two "cheap" model runs (GPT-5 Mini Low + Gemini 2.0 Flash). The resulting confidence score achieves a higher AUC on the Risk-Coverage Curve than the raw logprobs of a single expensive model (Gemini 2.5 Pro).
+
+\textbf{Finding 4.2: Two cheap runs can beat one expensive run.}
+This result demonstrates a practical "arbitrage" opportunity: by combining signals from cheaper models, practitioners can achieve better review-budget efficiency than by relying on a single SOTA model.
+
+\begin{figure}[h]
+    \centering
+    % Placeholder for GBT Risk-Coverage Curve
+    \includegraphics[width=0.8\linewidth]{example-image-b}
+    \caption{Risk-Coverage Curves comparing single-model logprobs vs. the GBT ensemble. The GBT (green) achieves higher accuracy at lower review rates compared to the baseline logprobs (blue).}
+    \label{fig:gbt_risk_coverage}
+\end{figure}
+
+\subsection{Prompt Diversity in Ensembles}
+\label{subsec:results_diversity}
+
+\textbf{Finding 5.1: Prompt-based variation provides complementary signal.}
+Our analysis of the "best pairs" for ensemble selection shows that diversity in prompting (e.g., combining a "Literal" prompt with a "Contextual" prompt) frequently yields better coverage than visual augmentation alone. This supports the "soft orthogonality" claim: prompt diversity adds meaningful signal for uncertainty estimation.
+
+\begin{table}[h]
+    \centering
+    \begin{tabular}{l|c|c}
+        \textbf{Coverage Level} & \textbf{Best Pair Type} & \textbf{\% of Cases} \\
+        \hline
+        High Risk ($<2\%$ error) & Prompt + Prompt & 45\% \\
+        Med Risk ($<5\%$ error) & Prompt + Augmentation & 35\% \\
+        Low Risk ($<10\%$ error) & Augmentation + Augmentation & 20\% \\
+    \end{tabular}
+    \caption{Analysis of the composition of the best ensemble pairs at different risk levels. Prompt diversity plays a significant role, especially at stricter error tolerances. (Placeholder values).}
+    \label{tab:best_pairs}
+\end{table}

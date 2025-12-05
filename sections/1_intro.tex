@@ -1,0 +1,35 @@
+% We introduce a review-budget evaluation framework for transcription systems, quantifying the tradeoff between human review rate and post-review accuracy.
+
+% We systematically evaluate confidence estimation methods across modern multimodal and reasoning-oriented LLMs, finding that:
+
+% Logit-based confidence is poorly calibrated for reasoning models.
+
+% For Gemini 2.0, self-reported confidence outperforms logit-derived confidence.
+
+% Confidence expressed on a 1–10 ordinal scale yields more usable ranking than normalized 0–1 outputs.
+
+% We analyze prompting strategies—literal vs contextual vs character-level transcription—and demonstrate that the choice of granularity materially affects both accuracy and calibration.
+
+% We release a general-purpose evaluation suite for auditing confidence heuristics under review-budget constraints.
+
+% Another issue with traditional eval measures: performance depends more and more on test time compute; costs, flops, etc. all go into it; not sure what I want to do with this--I guess I'm thinking of the traditional model of "oh look I got SoTA on this dataset" needs to evolve, not entirely sure how though; ensembling was always kind of a "cheat code", what is the path forward here?
+
+Confidence estimation in large language models remains a central obstacle to their safe and efficient deployment. In high-stakes domains such as document transcription and structured extraction, practitioners must decide which predictions to trust and which to send for costly manual review. This operational decision is poorly reflected by traditional scalar error rates (e.g., Character Error Rate), which obscure the practical tradeoffs between accuracy and labor cost.
+
+This evaluation gap is widening. Model performance is no longer a static property of an architecture but a dynamic outcome of "inference-time" strategies, including prompt engineering, ensemble methods, and the selection of models with varying computational costs (e.g., trading the expense of a model like Gemini 2.5 Pro for higher accuracy). Furthermore, the pervasive "training data contamination" of web-scale models makes comparisons on standard, static test sets an unreliable measure of generalization. Consequently, chasing a "state-of-the-art" score on a contaminated benchmark fails to address the real-world challenge: how to best allocate a finite budget for computation and human review to achieve a target level of quality.
+
+We address this challenge by evaluating confidence heuristics within a review-budget framework. Rather than reporting a single error rate, we plot the final system accuracy as a function of the proportion of items flagged for manual review. This metric directly quantifies the efficiency of any given uncertainty signal, allowing practitioners to select strategies and set review thresholds based on their specific operational constraints.
+
+Within this framework, we conduct a systematic, empirical audit of confidence signals for modern transcription models. We first establish that log-probabilities (logprobs)—when available—serve as a robust and calibratable foundation for confidence, holding up well even under mild accuracy degradations.
+
+However, most powerful models are accessed via APIs that do not expose logprobs, creating a critical, practical gap for practitioners. The core of our investigation is therefore dedicated to identifying the most effective confidence proxies in this common, constrained setting. We systematically compare several strategies, including:
+
+Self-Reported Confidence: Prompting the model to assess its own uncertainty (e.g., providing 1-10 scores).
+
+Prompt-Based Justifications: Analyzing the text of model-generated explanations to infer uncertainty.
+
+Ensemble Variance: Measuring disagreement across multiple prompts or model variants, which maps directly to a compute-cost-versus-confidence tradeoff.
+
+Our investigation also quantifies how prompt design choices—such as steering a model to prefer "contextual" over "literal" transcriptions to manage frequency bias, or requesting character-level outputs—impact both downstream accuracy and the reliability of these confidence signals.
+
+Our contribution is not a single model or a new SOTA score. Instead, we provide an empirical map of the tradeoffs between inference cost, human review effort, and final accuracy. These findings offer a principled guide for practitioners building real-world HITL systems, while focusing research on the operationally critical, yet often-overlooked, problem of practical confidence estimation.
